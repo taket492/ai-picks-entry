@@ -33,6 +33,7 @@ export default function App() {
   const [isSaving, setIsSaving] = useState(false)
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null)
   const [recent, setRecent] = useState<ListItem[]>([])
+  const [meeting, setMeeting] = useState<{ race_date?: string; course_code?: string; course_name?: string }>({})
 
   const race = races.find(r => r.race_no === current)!
   const setRaceRows = (rows: Row[]) => {
@@ -45,6 +46,7 @@ export default function App() {
 
   // Helpers
   const applyMeetingInfo = (info: Partial<RaceInfo>) => {
+    setMeeting(prev => ({ ...prev, ...info }))
     setRaces(prev => prev.map(r => ({ ...r, info: { ...r.info, ...info } })))
   }
 
@@ -53,6 +55,12 @@ export default function App() {
       const data = await apiLoad(id)
       if (data.predictors) setPredictors(data.predictors)
       if (data.races) setRaces(data.races)
+      if ((data as any).meta) setMeeting((data as any).meta)
+      else if (data.races && data.races[0] && data.races[0].info) setMeeting({
+        race_date: data.races[0].info.race_date,
+        course_code: data.races[0].info.course_code,
+        course_name: data.races[0].info.course_name,
+      })
       setDocId(id)
       const url = new URL(window.location.href)
       url.searchParams.set('id', id)
@@ -74,6 +82,7 @@ export default function App() {
       ])
       setRaces(Array.from({ length: 12 }).map((_, i) => makeInitialRace(i + 1)))
       setCurrent(1)
+      setMeeting({})
       setDocId(newId)
       const url = new URL(window.location.href)
       url.searchParams.set('id', newId)
@@ -114,6 +123,12 @@ export default function App() {
           const data = await apiLoad(id)
           if (data.predictors) setPredictors(data.predictors)
           if (data.races) setRaces(data.races)
+          if ((data as any).meta) setMeeting((data as any).meta)
+          else if (data.races && data.races[0] && data.races[0].info) setMeeting({
+            race_date: data.races[0].info.race_date,
+            course_code: data.races[0].info.course_code,
+            course_name: data.races[0].info.course_name,
+          })
           setDocId(id)
           localStorage.setItem('lastDocId', id)
           return
@@ -128,6 +143,12 @@ export default function App() {
           const data = await apiLoad(last)
           if (data.predictors) setPredictors(data.predictors)
           if (data.races) setRaces(data.races)
+          if ((data as any).meta) setMeeting((data as any).meta)
+          else if (data.races && data.races[0] && data.races[0].info) setMeeting({
+            race_date: data.races[0].info.race_date,
+            course_code: data.races[0].info.course_code,
+            course_name: data.races[0].info.course_name,
+          })
           setDocId(last)
           url.searchParams.set('id', last)
           window.history.replaceState({}, '', url.toString())
@@ -157,7 +178,7 @@ export default function App() {
   }, [])
 
   // Auto save (debounced)
-  const snapshot = useMemo(() => ({ predictors, races }), [predictors, races])
+  const snapshot = useMemo(() => ({ predictors, races, meta: meeting }), [predictors, races, meeting])
   const snapStr = useMemo(() => JSON.stringify(snapshot), [snapshot])
   const timerRef = useRef<number | null>(null)
   useEffect(() => {
@@ -223,9 +244,9 @@ export default function App() {
             <div className="rounded-lg border border-gray-200 bg-white p-4">
               <h2 className="mb-3 text-base font-semibold">開催情報（全レース共通）</h2>
               <MeetingControls value={{
-                race_date: race.info.race_date || '',
-                course_code: race.info.course_code || '',
-                course_name: race.info.course_name || '',
+                race_date: meeting.race_date || '',
+                course_code: meeting.course_code || '',
+                course_name: meeting.course_name || '',
               }} onChange={handleMeetingChange} />
             </div>
 

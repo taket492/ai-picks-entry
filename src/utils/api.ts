@@ -3,6 +3,11 @@ import type { Predictor, RaceData } from '../types'
 export interface Payload {
   predictors: Predictor[]
   races: RaceData[]
+  meta?: {
+    race_date?: string
+    course_code?: string
+    course_name?: string
+  }
 }
 
 export interface ListItem {

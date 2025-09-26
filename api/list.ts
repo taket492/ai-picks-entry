@@ -14,8 +14,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       SELECT 
         id,
         updated_at,
-        COALESCE((payload->'races'->0->'info'->>'race_date'), '') AS race_date,
-        COALESCE((payload->'races'->0->'info'->>'course_name'), '') AS course_name
+        COALESCE((payload->'meta'->>'race_date'), (payload->'races'->0->'info'->>'race_date'), '') AS race_date,
+        COALESCE((payload->'meta'->>'course_name'), (payload->'races'->0->'info'->>'course_name'), '') AS course_name
       FROM entries
       ORDER BY updated_at DESC
       LIMIT 30
@@ -27,4 +27,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(500).json({ error: 'Internal Server Error' })
   }
 }
-
