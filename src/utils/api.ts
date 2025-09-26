@@ -5,6 +5,13 @@ export interface Payload {
   races: RaceData[]
 }
 
+export interface ListItem {
+  id: string
+  race_date?: string
+  course_name?: string
+  updated_at?: string
+}
+
 export async function apiNew(): Promise<{ id: string }> {
   const r = await fetch('/api/new', { method: 'POST' })
   if (!r.ok) throw new Error('failed to create id')
@@ -27,3 +34,9 @@ export async function apiLoad(id: string): Promise<Payload> {
   return data.payload as Payload
 }
 
+export async function apiList(): Promise<ListItem[]> {
+  const r = await fetch('/api/list')
+  if (!r.ok) throw new Error('list failed')
+  const data = await r.json()
+  return (data.items || []) as ListItem[]
+}

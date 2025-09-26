@@ -5,7 +5,8 @@ import SummaryPane from './components/SummaryPane'
 import PredictorsSettings from './components/PredictorsSettings'
 import GlobalBest from './components/GlobalBest'
 import type { RaceInfo, Row, RaceData, Predictor, PredictorId } from './types'
-import { apiLoad, apiNew, apiSave } from './utils/api'
+import { apiList, apiLoad, apiNew, apiSave, type ListItem } from './utils/api'
+import MeetingControls from './components/MeetingControls'
 
 function makeEmptyRow(i: number): Row {
   return { horse_no: String(i + 1), horse_name: '', marks: { A: '', B: '', C: '', D: '' }, comment: '' }
@@ -31,6 +32,7 @@ export default function App() {
   const [docId, setDocId] = useState<string>('')
   const [isSaving, setIsSaving] = useState(false)
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null)
+  const [recent, setRecent] = useState<ListItem[]>([])
 
   const race = races.find(r => r.race_no === current)!
   const setRaceRows = (rows: Row[]) => {
@@ -40,6 +42,47 @@ export default function App() {
     setRaces(prev => prev.map(r => r.race_no === current ? { ...r, info } : r))
   }
   const predictorsIds: PredictorId[] = ['A','B','C','D']
+
+  // Helpers
+  const applyMeetingInfo = (info: Partial<RaceInfo>) => {
+    setRaces(prev => prev.map(r => ({ ...r, info: { ...r.info, ...info } })))
+  }
+
+  const switchToId = async (id: string) => {
+    try {
+      const data = await apiLoad(id)
+      if (data.predictors) setPredictors(data.predictors)
+      if (data.races) setRaces(data.races)
+      setDocId(id)
+      const url = new URL(window.location.href)
+      url.searchParams.set('id', id)
+      window.history.replaceState({}, '', url.toString())
+      localStorage.setItem('lastDocId', id)
+    } catch {
+      // ignore
+    }
+  }
+
+  const createNewMeeting = async () => {
+    try {
+      const { id: newId } = await apiNew()
+      setPredictors([
+        { id: 'A', name: '予想家A', weight: 1.0 },
+        { id: 'B', name: '予想家B', weight: 1.0 },
+        { id: 'C', name: '予想家C', weight: 1.0 },
+        { id: 'D', name: '予想家D', weight: 1.0 },
+      ])
+      setRaces(Array.from({ length: 12 }).map((_, i) => makeInitialRace(i + 1)))
+      setCurrent(1)
+      setDocId(newId)
+      const url = new URL(window.location.href)
+      url.searchParams.set('id', newId)
+      window.history.replaceState({}, '', url.toString())
+      localStorage.setItem('lastDocId', newId)
+    } catch {
+      // ignore
+    }
+  }
 
   // Load or create doc id
   useEffect(() => {
@@ -52,19 +95,44 @@ export default function App() {
           if (data.predictors) setPredictors(data.predictors)
           if (data.races) setRaces(data.races)
           setDocId(id)
+          localStorage.setItem('lastDocId', id)
           return
         } catch {
           // fallthrough to new
         }
+      }
+      // Try lastDocId from localStorage
+      const last = localStorage.getItem('lastDocId')
+      if (last) {
+        try {
+          const data = await apiLoad(last)
+          if (data.predictors) setPredictors(data.predictors)
+          if (data.races) setRaces(data.races)
+          setDocId(last)
+          url.searchParams.set('id', last)
+          window.history.replaceState({}, '', url.toString())
+          return
+        } catch {}
       }
       try {
         const { id: newId } = await apiNew()
         setDocId(newId)
         url.searchParams.set('id', newId)
         window.history.replaceState({}, '', url.toString())
+        localStorage.setItem('lastDocId', newId)
       } catch {
         // offline/local without id
       }
+    })()
+  }, [])
+
+  // Load recent list
+  useEffect(() => {
+    (async () => {
+      try {
+        const items = await apiList()
+        setRecent(items)
+      } catch {}
     })()
   }, [])
 
@@ -91,17 +159,30 @@ export default function App() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-10 bg-white shadow-sm">
         <div className="mx-auto max-w-7xl px-4 py-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h1 className="text-lg font-semibold">AI予想屋の印 — 1〜12R・4予想家</h1>
-            <div className="text-xs text-gray-600">
-              {docId ? (
-                <span>
-                  ID: <span className="font-mono">{docId}</span>{' '}
-                  {isSaving ? '保存中…' : lastSavedAt ? `保存済み ${new Date(lastSavedAt).toLocaleTimeString()}` : ''}
-                </span>
-              ) : (
-                <span>ローカル編集（ID未発行）</span>
-              )}
+            <div className="flex flex-col items-end gap-2">
+              <div className="text-xs text-gray-600">
+                {docId ? (
+                  <span>
+                    ID: <span className="font-mono">{docId}</span>{' '}
+                    {isSaving ? '保存中…' : lastSavedAt ? `保存済み ${new Date(lastSavedAt).toLocaleTimeString()}` : ''}
+                  </span>
+                ) : (
+                  <span>ローカル編集（ID未発行）</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button className="btn btn-secondary" onClick={createNewMeeting}>新しい開催を作成</button>
+                <select className="input" value="" onChange={e => { const id = e.target.value; if (id) switchToId(id) }}>
+                  <option value="">最近の保存から開く</option>
+                  {recent.map(it => (
+                    <option key={it.id} value={it.id}>
+                      {(it.race_date || '日付未設定')} {it.course_name ? `・${it.course_name}` : ''}（{it.id}）
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -117,6 +198,15 @@ export default function App() {
                   <button key={r.race_no} className={`btn ${current === r.race_no ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setCurrent(r.race_no)}>R{r.race_no}</button>
                 ))}
               </div>
+            </div>
+
+            <div className="rounded-lg border border-gray-200 bg-white p-4">
+              <h2 className="mb-3 text-base font-semibold">開催情報（全レース共通）</h2>
+              <MeetingControls value={{
+                race_date: race.info.race_date || '',
+                course_code: race.info.course_code || '',
+                course_name: race.info.course_name || '',
+              }} onChange={v => applyMeetingInfo(v)} />
             </div>
 
             <div className="rounded-lg border border-gray-200 bg-white p-4">
