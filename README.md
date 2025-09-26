@@ -40,3 +40,4 @@ interface Payload {
 - React + TypeScript + Vite + Tailwind CSS
 - Vercel Functions + Vercel Postgres
 
+# ai-picks-entry
