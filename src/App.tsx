@@ -34,6 +34,7 @@ export default function App() {
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null)
   const [recent, setRecent] = useState<ListItem[]>([])
   const [meeting, setMeeting] = useState<{ race_date?: string; course_code?: string; course_name?: string }>({})
+  const [meetingChangeInPlaceOnce, setMeetingChangeInPlaceOnce] = useState<boolean>(false)
 
   const race = races.find(r => r.race_no === current)!
   const setRaceRows = (rows: Row[]) => {
@@ -95,6 +96,11 @@ export default function App() {
   }
 
   const handleMeetingChange = async (info: Partial<RaceInfo>) => {
+    if (meetingChangeInPlaceOnce) {
+      setMeetingChangeInPlaceOnce(false)
+      applyMeetingInfo(info)
+      return
+    }
     // Detect change of key meeting fields: date or course
     const currentDate = meeting.race_date || ''
     const currentCourse = meeting.course_code || ''
@@ -119,6 +125,23 @@ export default function App() {
     } else {
       applyMeetingInfo(info)
     }
+  }
+
+  const duplicateAsNewMeeting = async () => {
+    try {
+      const { id: newId } = await apiNew()
+      setDocId(newId)
+      const url = new URL(window.location.href)
+      url.searchParams.set('id', newId)
+      window.history.replaceState({}, '', url.toString())
+      localStorage.setItem('lastDocId', newId)
+      // Allow next meeting change (date/course) to modify this cloned doc in place
+      setMeetingChangeInPlaceOnce(true)
+      // Optionally refresh recents after autosave occurs
+      setTimeout(async () => {
+        try { const items = await apiList(); setRecent(items) } catch {}
+      }, 1500)
+    } catch {}
   }
 
   // Load or create doc id
@@ -223,6 +246,7 @@ export default function App() {
               </div>
               <div className="flex items-center gap-2">
                 <button className="btn btn-secondary" onClick={createNewMeeting}>新しい開催を作成</button>
+                <button className="btn btn-secondary" onClick={duplicateAsNewMeeting}>別開催として複製</button>
                 <select className="input" value="" onChange={e => { const id = e.target.value; if (id) switchToId(id) }}>
                   <option value="">最近の保存から開く</option>
                   {recent.map(it => (
