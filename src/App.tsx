@@ -7,6 +7,7 @@ import GlobalBest from './components/GlobalBest'
 import type { RaceInfo, Row, RaceData, Predictor, PredictorId, Mark } from './types'
 import { apiList, apiLoad, apiNew, apiSave, type ListItem } from './utils/api'
 import MeetingControls from './components/MeetingControls'
+import MiniSummary from './components/MiniSummary'
 import MobileToolbar from './components/MobileToolbar'
 
 function makeEmptyRow(i: number): Row {
@@ -237,6 +238,20 @@ export default function App() {
     return () => { if (timerRef.current) window.clearTimeout(timerRef.current) }
   }, [docId, snapStr])
 
+  // Keyboard shortcuts: arrows for race, 'a' to add row, digits 1-9 to jump
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (['INPUT','SELECT','TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return
+      if (e.key === 'ArrowLeft') { e.preventDefault(); setCurrent(c => Math.max(1, c - 1)); return }
+      if (e.key === 'ArrowRight') { e.preventDefault(); setCurrent(c => Math.min(12, c + 1)); return }
+      if (e.key.toLowerCase() === 'a') { e.preventDefault(); addRowInCurrent(); return }
+      if (/^[1-9]$/.test(e.key)) { e.preventDefault(); setCurrent(Number(e.key)); return }
+      if (e.key === '0') { e.preventDefault(); setCurrent(10); return }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-10 bg-white shadow-sm">
@@ -308,6 +323,7 @@ export default function App() {
           </aside>
 
           <section className="space-y-6 lg:col-span-2">
+            <MiniSummary rows={race.rows} predictors={predictors} />
             <div className="rounded-lg border border-gray-200 bg-white p-4">
               <h2 className="mb-3 text-base font-semibold">レース情報</h2>
               <RaceInfoForm value={{

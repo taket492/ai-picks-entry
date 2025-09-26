@@ -1,6 +1,6 @@
 import React from 'react'
 import type { Row, Mark, PredictorId } from '../types'
-import { ALL_MARKS } from '../utils/marks'
+import { ALL_MARKS, countStars } from '../utils/marks'
 
 interface Props {
   rows: Row[]
@@ -25,6 +25,10 @@ export default function HorseTable({ rows, onChange, predictors }: Props) {
     const next = rows.filter((_, i) => i !== idx)
     onChange(next)
   }
+  function cycleMark(m: Mark): Mark {
+    const i = ALL_MARKS.indexOf(m)
+    return ALL_MARKS[(i + 1) % ALL_MARKS.length]
+  }
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
@@ -46,8 +50,12 @@ export default function HorseTable({ rows, onChange, predictors }: Props) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {rows.map((r, idx) => (
-              <tr key={idx} className="bg-white hover:bg-gray-50">
+            {rows.map((r, idx) => {
+              const stars = countStars(r)
+              const tone = stars >= 3 ? 'bg-indigo-50' : stars >= 2 ? 'bg-indigo-25' : 'bg-white'
+              const border = stars >= 4 ? 'border-l-4 border-indigo-500' : stars === 3 ? 'border-l-4 border-indigo-400' : stars === 2 ? 'border-l-4 border-indigo-300' : ''
+              return (
+              <tr key={idx} className={`${tone} hover:bg-gray-50 ${border}`}>
                 <td className="px-2 py-1 w-16">
                   <input inputMode="numeric" pattern="[0-9]*" className="table-input text-center" value={r.horse_no} onChange={e => updateRow(idx, { horse_no: e.target.value })} />
                 </td>
@@ -56,12 +64,17 @@ export default function HorseTable({ rows, onChange, predictors }: Props) {
                 </td>
                 {predictors.map(p => (
                   <td key={p} className="px-2 py-1 w-20">
-                    <select className="table-input" value={r.marks[p]} onChange={e => {
-                      const marks = { ...r.marks, [p]: e.target.value as Mark }
-                      updateRow(idx, { marks })
-                    }}>
-                      {ALL_MARKS.map(m => <option key={m} value={m}>{m || '—'}</option>)}
-                    </select>
+                    <button
+                      className={`w-full px-2 py-1 text-xs rounded-md ring-1 ring-inset ${r.marks[p] ? 'bg-indigo-600 text-white ring-indigo-600' : 'bg-white text-gray-900 ring-gray-300'}`}
+                      onClick={() => {
+                        const nextMark = cycleMark(r.marks[p] as Mark)
+                        const marks = { ...r.marks, [p]: nextMark }
+                        updateRow(idx, { marks })
+                      }}
+                      title="クリックで印を切り替え"
+                    >
+                      {r.marks[p] || '—'}
+                    </button>
                   </td>
                 ))}
                 <td className="px-2 py-1 min-w-[10rem]">
@@ -71,7 +84,7 @@ export default function HorseTable({ rows, onChange, predictors }: Props) {
                   <button className="text-xs text-red-600 hover:underline" onClick={() => deleteRow(idx)}>削除</button>
                 </td>
               </tr>
-            ))}
+            )})}
           </tbody>
         </table>
       </div>
