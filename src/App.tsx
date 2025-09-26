@@ -63,7 +63,7 @@ export default function App() {
     }
   }
 
-  const createNewMeeting = async () => {
+  const createNewMeeting = async (): Promise<string | null> => {
     try {
       const { id: newId } = await apiNew()
       setPredictors([
@@ -79,8 +79,28 @@ export default function App() {
       url.searchParams.set('id', newId)
       window.history.replaceState({}, '', url.toString())
       localStorage.setItem('lastDocId', newId)
+      return newId
     } catch {
-      // ignore
+      return null
+    }
+  }
+
+  const handleMeetingChange = async (info: Partial<RaceInfo>) => {
+    // Detect change of key meeting fields: date or course
+    const currentDate = race.info.race_date || ''
+    const currentCourse = race.info.course_code || ''
+    const nextDate = info.race_date ?? currentDate
+    const nextCourse = info.course_code ?? currentCourse
+
+    const isChangingMeeting = (currentDate && nextDate && nextDate !== currentDate) || (currentCourse && nextCourse && nextCourse !== currentCourse)
+
+    if (docId && isChangingMeeting) {
+      const newId = await createNewMeeting()
+      if (newId) {
+        applyMeetingInfo(info)
+      }
+    } else {
+      applyMeetingInfo(info)
     }
   }
 
@@ -206,7 +226,7 @@ export default function App() {
                 race_date: race.info.race_date || '',
                 course_code: race.info.course_code || '',
                 course_name: race.info.course_name || '',
-              }} onChange={v => applyMeetingInfo(v)} />
+              }} onChange={handleMeetingChange} />
             </div>
 
             <div className="rounded-lg border border-gray-200 bg-white p-4">
