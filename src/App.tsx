@@ -9,6 +9,7 @@ import { apiList, apiLoad, apiNew, apiSave, type ListItem } from './utils/api'
 import MeetingControls from './components/MeetingControls'
 import MiniSummary from './components/MiniSummary'
 import MobileToolbar from './components/MobileToolbar'
+import Collapsible from './components/Collapsible'
 
 function makeEmptyRow(i: number): Row {
   return { horse_no: String(i + 1), horse_name: '', marks: { A: '', B: '', C: '', D: '' }, comment: '' }
@@ -303,7 +304,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
+            <div className="hidden md:block rounded-lg border border-gray-200 bg-white p-4">
               <h2 className="mb-3 text-base font-semibold">開催情報（全レース共通）</h2>
               <MeetingControls value={{
                 race_date: meeting.race_date || '',
@@ -311,14 +312,33 @@ export default function App() {
                 course_name: meeting.course_name || '',
               }} onChange={handleMeetingChange} />
             </div>
+            <div className="md:hidden">
+              <Collapsible title="開催情報（全レース共通）" defaultOpen={false}>
+                <MeetingControls value={{
+                  race_date: meeting.race_date || '',
+                  course_code: meeting.course_code || '',
+                  course_name: meeting.course_name || '',
+                }} onChange={handleMeetingChange} />
+              </Collapsible>
+            </div>
 
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
+            <div className="hidden md:block rounded-lg border border-gray-200 bg-white p-4">
               <h2 className="mb-3 text-base font-semibold">予想家設定</h2>
               <PredictorsSettings predictors={predictors} onChange={setPredictors} />
             </div>
+            <div className="md:hidden">
+              <Collapsible title="予想家設定" defaultOpen={false}>
+                <PredictorsSettings predictors={predictors} onChange={setPredictors} />
+              </Collapsible>
+            </div>
 
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
+            <div className="hidden md:block rounded-lg border border-gray-200 bg-white p-4">
               <GlobalBest races={races} predictors={predictors} />
+            </div>
+            <div className="md:hidden">
+              <Collapsible title="全レース上位3" defaultOpen={true}>
+                <GlobalBest races={races} predictors={predictors} />
+              </Collapsible>
             </div>
           </aside>
 

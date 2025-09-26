@@ -97,15 +97,15 @@ export default function HorseTable({ rows, onChange, predictors }: Props) {
               <input className="input flex-1" placeholder="馬名" value={r.horse_name} onChange={e => updateRow(idx, { horse_name: e.target.value })} />
               <button className="text-xs text-red-600 ml-auto" onClick={() => deleteRow(idx)}>削除</button>
             </div>
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <div className="flex items-center gap-3 overflow-x-auto pb-1">
               {predictors.map(p => (
                 <div key={p} className="flex items-center gap-1">
                   <span className="text-xs text-gray-600">{p}</span>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1.5">
                     {ALL_MARKS.map(m => (
                       <button
                         key={m}
-                        className={`px-2 py-1 text-xs rounded-md ring-1 ring-inset ${r.marks[p] === m ? 'bg-indigo-600 text-white ring-indigo-600' : 'bg-white text-gray-900 ring-gray-300'}`}
+                        className={`px-3 py-2 text-sm rounded-md ring-1 ring-inset ${r.marks[p] === m ? 'bg-indigo-600 text-white ring-indigo-600' : 'bg-white text-gray-900 ring-gray-300'}`}
                         onClick={() => updateRow(idx, { marks: { ...r.marks, [p]: m } })}
                       >
                         {m || '—'}
