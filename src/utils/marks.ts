@@ -15,12 +15,22 @@ export function markToScore(mark: Mark): number {
   return MARK_SCORES[mark] ?? 0
 }
 
+// マーク係数: ◎=3, ○=2, ▲=1, △=0.5, ×/空=0
+const MARK_FACTORS: Record<Mark, number> = {
+  '◎': 3,
+  '○': 2,
+  '▲': 1,
+  '△': 0.5,
+  '×': 0,
+  '': 0,
+}
+
 export function scoreRowByPicks(row: Row, predictors: Predictor[]): number {
-  // ◎ に対してのみ各予想家の重みを加点
   const weightMap = Object.fromEntries(predictors.map(p => [p.id, p.weight])) as Record<PredictorId, number>
   let sum = 0
   for (const id of Object.keys(row.marks) as PredictorId[]) {
-    if (row.marks[id] === '◎') sum += (weightMap[id] ?? 0)
+    const factor = MARK_FACTORS[row.marks[id] as Mark] ?? 0
+    sum += (weightMap[id] ?? 0) * factor
   }
   return sum
 }
