@@ -44,5 +44,7 @@ export async function apiList(): Promise<ListItem[]> {
   const r = await fetch('/api/list')
   if (!r.ok) throw new Error('list failed')
   const data = await r.json()
-  return (data.items || []) as ListItem[]
+  const items = (data.items || []) as ListItem[]
+  // Fallback filtering: exclude entries without a date
+  return items.filter(it => (it.race_date || '').trim() !== '')
 }
