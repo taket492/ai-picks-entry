@@ -14,6 +14,7 @@ export interface ListItem {
   id: string
   race_date?: string
   course_name?: string
+  course_code?: string
   updated_at?: string
 }
 

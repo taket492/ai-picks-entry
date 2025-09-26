@@ -96,17 +96,25 @@ export default function App() {
 
   const handleMeetingChange = async (info: Partial<RaceInfo>) => {
     // Detect change of key meeting fields: date or course
-    const currentDate = race.info.race_date || ''
-    const currentCourse = race.info.course_code || ''
+    const currentDate = meeting.race_date || ''
+    const currentCourse = meeting.course_code || ''
     const nextDate = info.race_date ?? currentDate
     const nextCourse = info.course_code ?? currentCourse
 
     const isChangingMeeting = (currentDate && nextDate && nextDate !== currentDate) || (currentCourse && nextCourse && nextCourse !== currentCourse)
 
     if (docId && isChangingMeeting) {
-      const newId = await createNewMeeting()
-      if (newId) {
+      // If an existing doc for same date+course exists, switch to it instead of creating
+      const target = recent.find(it => (it.race_date || '') === (nextDate || '') && ((it.course_code || '') === (nextCourse || '') || (it.course_name || '') === (info.course_name || '')))
+      if (target && target.id !== docId) {
+        await switchToId(target.id)
+        // After switching, ensure meeting state reflects the selected info
         applyMeetingInfo(info)
+      } else {
+        const newId = await createNewMeeting()
+        if (newId) {
+          applyMeetingInfo(info)
+        }
       }
     } else {
       applyMeetingInfo(info)

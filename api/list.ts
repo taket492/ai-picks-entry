@@ -15,7 +15,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         id,
         updated_at,
         COALESCE((payload->'meta'->>'race_date'), (payload->'races'->0->'info'->>'race_date'), '') AS race_date,
-        COALESCE((payload->'meta'->>'course_name'), (payload->'races'->0->'info'->>'course_name'), '') AS course_name
+        COALESCE((payload->'meta'->>'course_name'), (payload->'races'->0->'info'->>'course_name'), '') AS course_name,
+        COALESCE((payload->'meta'->>'course_code'), (payload->'races'->0->'info'->>'course_code'), '') AS course_code
       FROM entries
       ORDER BY updated_at DESC
       LIMIT 30
