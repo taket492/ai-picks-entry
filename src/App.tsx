@@ -4,9 +4,10 @@ import HorseTable from './components/HorseTable'
 import SummaryPane from './components/SummaryPane'
 import PredictorsSettings from './components/PredictorsSettings'
 import GlobalBest from './components/GlobalBest'
-import type { RaceInfo, Row, RaceData, Predictor, PredictorId } from './types'
+import type { RaceInfo, Row, RaceData, Predictor, PredictorId, Mark } from './types'
 import { apiList, apiLoad, apiNew, apiSave, type ListItem } from './utils/api'
 import MeetingControls from './components/MeetingControls'
+import MobileToolbar from './components/MobileToolbar'
 
 function makeEmptyRow(i: number): Row {
   return { horse_no: String(i + 1), horse_name: '', marks: { A: '', B: '', C: '', D: '' }, comment: '' }
@@ -40,10 +41,19 @@ export default function App() {
   const setRaceRows = (rows: Row[]) => {
     setRaces(prev => prev.map(r => r.race_no === current ? { ...r, rows } : r))
   }
+  const addRowInCurrent = () => {
+    const r = races.find(rr => rr.race_no === current)
+    if (!r) return
+    const nextNo = String(Math.max(0, ...r.rows.map(rw => Number(rw.horse_no) || 0)) + 1)
+    const newRow: Row = { horse_no: nextNo, horse_name: '', marks: { A: '' as Mark, B: '' as Mark, C: '' as Mark, D: '' as Mark }, comment: '' }
+    const next = [...r.rows, newRow]
+    setRaceRows(next)
+  }
   const setRaceInfo = (info: Partial<RaceInfo>) => {
     setRaces(prev => prev.map(r => r.race_no === current ? { ...r, info } : r))
   }
   const predictorsIds: PredictorId[] = ['A','B','C','D']
+  const totalRaces = 12
 
   // Helpers
   const applyMeetingInfo = (info: Partial<RaceInfo>) => {
@@ -266,7 +276,12 @@ export default function App() {
           <aside className="space-y-4 lg:col-span-1">
             <div className="rounded-lg border border-gray-200 bg-white p-4">
               <h2 className="mb-3 text-base font-semibold">レース切替</h2>
-              <div className="grid grid-cols-6 gap-2">
+              <div className="flex gap-2 overflow-x-auto md:hidden pb-1">
+                {races.map(r => (
+                  <button key={r.race_no} className={`btn whitespace-nowrap ${current === r.race_no ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setCurrent(r.race_no)}>R{r.race_no}</button>
+                ))}
+              </div>
+              <div className="hidden md:grid grid-cols-6 gap-2">
                 {races.map(r => (
                   <button key={r.race_no} className={`btn ${current === r.race_no ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setCurrent(r.race_no)}>R{r.race_no}</button>
                 ))}
@@ -312,6 +327,17 @@ export default function App() {
               <SummaryPane rows={race.rows} predictors={predictors} />
             </div>
           </section>
+        </div>
+        {/* Mobile bottom toolbar */}
+        <div className="md:hidden">
+          <MobileToolbar
+            onPrev={() => setCurrent(Math.max(1, current - 1))}
+            onNext={() => setCurrent(Math.min(totalRaces, current + 1))}
+            onAdd={addRowInCurrent}
+            current={current}
+            total={totalRaces}
+            savingText={docId ? (isSaving ? '保存中…' : (lastSavedAt ? `保存済み ${new Date(lastSavedAt).toLocaleTimeString()}` : '')) : 'ローカル'}
+          />
         </div>
       </main>
     </div>
