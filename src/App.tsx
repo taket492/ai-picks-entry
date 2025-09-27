@@ -10,6 +10,7 @@ import MeetingControls from './components/MeetingControls'
 import MiniSummary from './components/MiniSummary'
 import MobileToolbar from './components/MobileToolbar'
 import Collapsible from './components/Collapsible'
+import FloatingRaceSwitcher from './components/FloatingRaceSwitcher'
 import ManualImport from './components/ManualImport'
 
 function makeEmptyRow(i: number): Row {
@@ -281,6 +282,8 @@ export default function App() {
       if (['INPUT','SELECT','TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return
       if (e.key === 'ArrowLeft') { e.preventDefault(); setCurrent(c => Math.max(1, c - 1)); return }
       if (e.key === 'ArrowRight') { e.preventDefault(); setCurrent(c => Math.min(12, c + 1)); return }
+      if (e.key.toLowerCase() === 'k') { e.preventDefault(); setCurrent(c => Math.max(1, c - 1)); return }
+      if (e.key.toLowerCase() === 'j') { e.preventDefault(); setCurrent(c => Math.min(12, c + 1)); return }
       if (e.key.toLowerCase() === 'a') { e.preventDefault(); addRowInCurrent(); return }
       if (/^[1-9]$/.test(e.key)) { e.preventDefault(); setCurrent(Number(e.key)); return }
       if (e.key === '0') { e.preventDefault(); setCurrent(10); return }
@@ -438,6 +441,14 @@ export default function App() {
           />
         </div>
       </main>
+      {/* Desktop floating race switcher */}
+      <FloatingRaceSwitcher
+        current={current}
+        total={totalRaces}
+        onPrev={() => setCurrent(Math.max(1, current - 1))}
+        onNext={() => setCurrent(Math.min(totalRaces, current + 1))}
+        onJump={(n) => setCurrent(Math.min(totalRaces, Math.max(1, n)))}
+      />
     </div>
   )
 }
