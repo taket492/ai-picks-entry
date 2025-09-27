@@ -48,3 +48,36 @@ export async function apiList(): Promise<ListItem[]> {
   // Fallback filtering: exclude entries without a date
   return items.filter(it => (it.race_date || '').trim() !== '')
 }
+
+export interface FetchCardHorse {
+  horse_no: string
+  horse_name: string
+}
+
+export interface FetchCardRace {
+  race_no: number
+  horses: FetchCardHorse[]
+}
+
+export interface FetchCardResponse {
+  races: FetchCardRace[]
+}
+
+export async function apiFetchCard(params: { date: string; course: string }): Promise<FetchCardResponse> {
+  const qs = new URLSearchParams({ date: params.date, course: params.course })
+  try {
+    const r = await fetch(`/api/fetch-card?${qs.toString()}`)
+    if (!r.ok) throw new Error('fetch-card failed')
+    return await r.json()
+  } catch (_) {
+    // Dev fallback: return mock locally when serverless is unavailable
+    const races: FetchCardRace[] = Array.from({ length: 12 }).map((_, i) => ({
+      race_no: i + 1,
+      horses: Array.from({ length: 8 }).map((__, j) => ({
+        horse_no: String(j + 1),
+        horse_name: `サンプル${i + 1}-${j + 1}`,
+      })),
+    }))
+    return { races }
+  }
+}

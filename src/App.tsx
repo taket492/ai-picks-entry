@@ -5,11 +5,12 @@ import SummaryPane from './components/SummaryPane'
 import PredictorsSettings from './components/PredictorsSettings'
 import GlobalBest from './components/GlobalBest'
 import type { RaceInfo, Row, RaceData, Predictor, PredictorId, Mark } from './types'
-import { apiList, apiLoad, apiNew, apiSave, type ListItem } from './utils/api'
+import { apiList, apiLoad, apiNew, apiSave, apiFetchCard, type ListItem, type FetchCardResponse } from './utils/api'
 import MeetingControls from './components/MeetingControls'
 import MiniSummary from './components/MiniSummary'
 import MobileToolbar from './components/MobileToolbar'
 import Collapsible from './components/Collapsible'
+import ManualImport from './components/ManualImport'
 
 function makeEmptyRow(i: number): Row {
   return { horse_no: String(i + 1), horse_name: '', marks: { A: '', B: '', C: '', D: '' }, comment: '' }
@@ -38,6 +39,7 @@ export default function App() {
   const [recent, setRecent] = useState<ListItem[]>([])
   const [meeting, setMeeting] = useState<{ race_date?: string; course_code?: string; course_name?: string }>({})
   const [meetingChangeInPlaceOnce, setMeetingChangeInPlaceOnce] = useState<boolean>(false)
+  const [isAutofilling, setIsAutofilling] = useState<boolean>(false)
 
   const race = races.find(r => r.race_no === current)!
   const setRaceRows = (rows: Row[]) => {
@@ -154,6 +156,40 @@ export default function App() {
         try { const items = await apiList(); setRecent(items) } catch {}
       }, 1500)
     } catch {}
+  }
+
+  const autofillFromCard = async () => {
+    const date = meeting.race_date || ''
+    const course = meeting.course_code || meeting.course_name || ''
+    if (!date || !course) {
+      alert('日付と開催（コース）を先に指定してください')
+      return
+    }
+    if (!confirm('全レースの馬番・馬名を自動取り込みして現在の入力を置き換えます。よろしいですか？')) return
+    setIsAutofilling(true)
+    try {
+      const card: FetchCardResponse = await apiFetchCard({ date, course })
+      const next = races.map(r => {
+        const m = card.races.find(x => x.race_no === r.race_no)
+        if (!m) return r
+        const mapped = {
+          ...r,
+          rows: (m.horses || []).map(h => ({
+            horse_no: String(h.horse_no || ''),
+            horse_name: String(h.horse_name || ''),
+            marks: { A: '' as Mark, B: '' as Mark, C: '' as Mark, D: '' as Mark },
+            comment: '',
+          })),
+        } as RaceData
+        return mapped
+      })
+      setRaces(next)
+    } catch (e) {
+      console.error(e)
+      alert('取り込みに失敗しました。時間をおいて再度お試しください。')
+    } finally {
+      setIsAutofilling(false)
+    }
   }
 
   // Load or create doc id
@@ -311,6 +347,20 @@ export default function App() {
                 course_code: meeting.course_code || '',
                 course_name: meeting.course_name || '',
               }} onChange={handleMeetingChange} />
+              <div className="mt-3">
+                <button className="btn btn-primary" onClick={autofillFromCard} disabled={isAutofilling}>
+                  {isAutofilling ? '取り込み中…' : 'データ作成（馬名自動取り込み）'}
+                </button>
+              </div>
+              <div className="mt-4">
+                <Collapsible title="手動取り込み（HTML貼付）" defaultOpen={false}>
+                  <ManualImport
+                    onApply={(raceNo, rows) => {
+                      setRaces(prev => prev.map(r => r.race_no === raceNo ? { ...r, rows } : r))
+                    }}
+                  />
+                </Collapsible>
+              </div>
             </div>
             <div className="md:hidden">
               <Collapsible title="開催情報（全レース共通）" defaultOpen={false}>
@@ -319,6 +369,18 @@ export default function App() {
                   course_code: meeting.course_code || '',
                   course_name: meeting.course_name || '',
                 }} onChange={handleMeetingChange} />
+                <div className="mt-3">
+                  <button className="btn btn-primary w-full" onClick={autofillFromCard} disabled={isAutofilling}>
+                    {isAutofilling ? '取り込み中…' : 'データ作成（馬名自動取り込み）'}
+                  </button>
+                </div>
+                <div className="mt-4">
+                  <ManualImport
+                    onApply={(raceNo, rows) => {
+                      setRaces(prev => prev.map(r => r.race_no === raceNo ? { ...r, rows } : r))
+                    }}
+                  />
+                </div>
               </Collapsible>
             </div>
 

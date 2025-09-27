@@ -17,6 +17,7 @@ npm run dev
 - スコア = Σ(予想家重み × 1[印=◎]) で並び替え
 - 全レースで最もスコアの高いレース/馬を表示
 - 自動保存（600msデバウンス）/ 自動読込（URL `?id=`）
+- 日付・開催から12Rの馬番/馬名を自動取り込み（「データ作成」ボタン）
 
 ## デプロイ（Vercel）
 - Build Command: `npm run build`
@@ -27,6 +28,20 @@ npm run dev
 - `POST /api/new` → `{ id }`（8文字ID 発行）
 - `POST /api/save` → `{ id, payload }` を UPSERT（`entries` テーブル）
 - `GET  /api/load?id=...` → `{ id, payload }` を返却
+- `GET  /api/fetch-card?date=YYYY-MM-DD&course=tokyo` → 当日の全レース馬番/馬名を返却（現状モック実装）。
+
+### 取得元プロバイダの設定（実運用）
+- 環境変数 `CARD_PROVIDER_URL` を設定すると、`/api/fetch-card` はそのURLへ `date`, `course` を付与してプロキシします。
+- 必要に応じて `CARD_PROVIDER_AUTH_HEADER`, `CARD_PROVIDER_AUTH_VALUE` を設定すると、任意のヘッダで認証情報を付与します。
+- 期待するレスポンス形式（JSON）
+  ```json
+  {
+    "races": [
+      { "race_no": 1, "horses": [ { "horse_no": "1", "horse_name": "サンプル" } ] }
+    ]
+  }
+  ```
+  `race_no` は 1〜12、`horse_no` は文字列、`horse_name` は馬名。
 
 ## データスキーマ（保存）
 ```ts
