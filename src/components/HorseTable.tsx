@@ -92,10 +92,9 @@ export default function HorseTable({ rows, onChange, predictors }: Props) {
       <div className="md:hidden space-y-3">
         {rows.map((r, idx) => (
           <div key={idx} className="rounded-md border border-gray-200 bg-white p-3 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-3 min-w-0">
               <input inputMode="numeric" pattern="[0-9]*" className="input w-16 text-center" placeholder="#" value={r.horse_no} onChange={e => updateRow(idx, { horse_no: e.target.value })} />
-              <input className="input flex-1" placeholder="馬名" value={r.horse_name} onChange={e => updateRow(idx, { horse_name: e.target.value })} />
-              <button className="text-xs text-red-600 ml-auto" onClick={() => deleteRow(idx)}>削除</button>
+              <input className="input flex-1 min-w-0" placeholder="馬名" aria-label="馬名" value={r.horse_name} onChange={e => updateRow(idx, { horse_name: e.target.value })} />
             </div>
             {/* Predictors as large tap targets: tap to cycle mark */}
             <div className="grid grid-cols-2 gap-2">
@@ -117,6 +116,9 @@ export default function HorseTable({ rows, onChange, predictors }: Props) {
             </div>
             <div className="mt-3">
               <input className="input" placeholder="メモ" value={r.comment ?? ''} onChange={e => updateRow(idx, { comment: e.target.value })} />
+            </div>
+            <div className="mt-2 text-right">
+              <button className="text-xs text-red-600" onClick={() => deleteRow(idx)}>削除</button>
             </div>
           </div>
         ))}
