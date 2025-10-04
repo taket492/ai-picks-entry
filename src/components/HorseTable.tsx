@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import type { Row, Mark, PredictorId } from '../types'
 import { ALL_MARKS, countStars } from '../utils/marks'
 
@@ -9,6 +9,9 @@ interface Props {
 }
 
 export default function HorseTable({ rows, onChange, predictors }: Props) {
+  const lastTapRef = useRef<number>(0)
+  const pressTimerRef = useRef<number | null>(null)
+  const ignoreUntilRef = useRef<number>(0)
   function updateRow(idx: number, patch: Partial<Row>) {
     const next = [...rows]
     next[idx] = { ...next[idx], ...patch, updated_at: new Date().toISOString() }
@@ -47,6 +50,10 @@ export default function HorseTable({ rows, onChange, predictors }: Props) {
     const next = rows.map(r => ({ ...r, marks: Object.fromEntries(predictors.map(p => [p, ''])) as Row['marks'] }))
     onChange(next)
   }
+  function bulkSetAll(mark: Mark) {
+    const next = rows.map(r => ({ ...r, marks: Object.fromEntries(predictors.map(p => [p, mark])) as Row['marks'] }))
+    onChange(next)
+  }
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
@@ -54,29 +61,34 @@ export default function HorseTable({ rows, onChange, predictors }: Props) {
         <div className="hidden md:flex items-center gap-2">
           <button className="btn btn-secondary" onClick={addRow}>行を追加</button>
           <button className="btn btn-secondary" onClick={bulkClearAll}>全印クリア</button>
+          <div className="hidden lg:flex items-center gap-1 text-[11px]">
+            <span className="text-gray-600">全列一括:</span>
+            {(['◎','○','▲','△','×',''] as Mark[]).map(m => (
+              <button key={m || 'empty'} className="px-1.5 py-0.5 rounded ring-1 ring-inset ring-gray-300 hover:bg-gray-50" onClick={() => bulkSetAll(m)}>{m || '－'}</button>
+            ))}
+          </div>
         </div>
+      </div>
+      <div className="md:hidden flex items-center justify-end gap-2 mb-2">
+        <button className="btn btn-secondary" onClick={addRow}>行を追加</button>
+        <button className="btn btn-secondary" onClick={bulkClearAll}>全印クリア</button>
       </div>
       {/* Desktop/Tablets: table */}
       <div className="overflow-auto border border-gray-200 rounded-md hidden md:block">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-gray-700 sticky top-0 z-10">
             <tr>
-              <th className="px-2 py-2 text-left sticky left-0 z-10 bg-gray-50">馬番</th>
-              <th className="px-2 py-2 text-left sticky left-16 z-10 bg-gray-50">馬名</th>
+              <th className="px-2 py-2 text-left sticky left-0 z-10 bg-gray-50 border-r border-gray-200">馬番</th>
+              <th className="px-2 py-2 text-left sticky left-16 z-10 bg-gray-50 border-r border-gray-200">馬名</th>
               {predictors.map(p => (
                 <th key={p} className="px-2 py-2 text-left">
-                  <div className="flex items-center gap-2">
-                    <span>{p}</span>
-                    <button
-                      className="px-1.5 py-0.5 text-[11px] rounded ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-                      title="この列を全て◎にする"
-                      onClick={() => bulkSet(p, '◎' as Mark)}
-                    >全◎</button>
-                    <button
-                      className="px-1.5 py-0.5 text-[11px] rounded ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-                      title="この列を全てクリア"
-                      onClick={() => bulkSet(p, '' as Mark)}
-                    >クリア</button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium">{p}</span>
+                    <div className="flex items-center gap-1 text-[11px]">
+                      {(['◎','○','▲','△','×',''] as Mark[]).map(m => (
+                        <button key={m || 'empty'} className="px-1.5 py-0.5 rounded ring-1 ring-inset ring-gray-300 hover:bg-gray-50" title={`この列を全て${m || '－'}にする`} onClick={() => bulkSet(p, m)}>{m || '－'}</button>
+                      ))}
+                    </div>
                   </div>
                 </th>
               ))}
@@ -91,10 +103,10 @@ export default function HorseTable({ rows, onChange, predictors }: Props) {
               const border = stars >= 4 ? 'border-l-4 border-indigo-500' : stars === 3 ? 'border-l-4 border-indigo-400' : stars === 2 ? 'border-l-4 border-indigo-300' : ''
               return (
               <tr key={idx} className={`${tone} hover:bg-gray-50 ${border}`}>
-                <td className="px-2 py-1 w-16 sticky left-0 bg-white z-10">
+                <td className="px-2 py-1 w-16 sticky left-0 bg-white z-10 border-r border-gray-200">
                   <input inputMode="numeric" pattern="[0-9]*" className="table-input text-center" value={r.horse_no} onChange={e => updateRow(idx, { horse_no: e.target.value })} />
                 </td>
-                <td className="px-2 py-1 min-w-[12rem] sticky left-16 bg-white z-10">
+                <td className="px-2 py-1 min-w-[12rem] sticky left-16 bg-white z-10 border-r border-gray-200">
                   <input className="table-input" value={r.horse_name} onChange={e => updateRow(idx, { horse_name: e.target.value })} />
                 </td>
                 {predictors.map(p => (
@@ -145,12 +157,31 @@ export default function HorseTable({ rows, onChange, predictors }: Props) {
                 <button
                   key={p}
                   className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-sm ring-1 ring-inset transition-colors ${r.marks[p] ? 'bg-indigo-600 text-white ring-indigo-600' : 'bg-white text-gray-900 ring-gray-300'}`}
-                  onClick={() => {
+                  onClick={(e) => {
+                    const now = Date.now()
+                    if (now < (ignoreUntilRef.current || 0)) return
+                    // Double-tap detection → set ◎
+                    if (now - (lastTapRef.current || 0) < 280) {
+                      lastTapRef.current = 0
+                      updateRow(idx, { marks: { ...r.marks, [p]: ('◎' as Mark) } })
+                      return
+                    }
+                    lastTapRef.current = now
                     const next = cycleMark(r.marks[p] as Mark)
                     updateRow(idx, { marks: { ...r.marks, [p]: next } })
                   }}
+                  onPointerDown={() => {
+                    if (pressTimerRef.current) window.clearTimeout(pressTimerRef.current)
+                    // long-press to clear
+                    pressTimerRef.current = window.setTimeout(() => {
+                      updateRow(idx, { marks: { ...r.marks, [p]: ('' as Mark) } })
+                      ignoreUntilRef.current = Date.now() + 200
+                    }, 450)
+                  }}
+                  onPointerUp={() => { if (pressTimerRef.current) { window.clearTimeout(pressTimerRef.current); pressTimerRef.current = null } }}
+                  onPointerLeave={() => { if (pressTimerRef.current) { window.clearTimeout(pressTimerRef.current); pressTimerRef.current = null } }}
                   aria-label={`予想家${p}の印を切り替え`}
-                  title="タップで印を切り替え"
+                  title="タップ=切替／ダブルタップ=◎／長押し=クリア"
                 >
                   <span className="font-medium">{p}</span>
                   <span className="ml-3 text-base leading-none">{r.marks[p] || '—'}</span>
