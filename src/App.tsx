@@ -12,6 +12,7 @@ import MobileToolbar from './components/MobileToolbar'
 import Collapsible from './components/Collapsible'
 import FloatingRaceSwitcher from './components/FloatingRaceSwitcher'
 import ManualImport from './components/ManualImport'
+import Legend from './components/Legend'
 
 function makeEmptyRow(i: number): Row {
   return { horse_no: String(i + 1), horse_name: '', marks: { A: '', B: '', C: '', D: '' }, comment: '' }
@@ -422,6 +423,9 @@ export default function App() {
 
             <div className="rounded-lg border border-gray-200 bg-white p-4">
               <HorseTable rows={race.rows} onChange={setRaceRows} predictors={predictorsIds} />
+              <div className="mt-3 md:mt-4">
+                <Legend />
+              </div>
             </div>
 
             <div className="rounded-lg border border-gray-200 bg-white p-4">
