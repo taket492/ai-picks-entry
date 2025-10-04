@@ -92,30 +92,30 @@ export default function HorseTable({ rows, onChange, predictors }: Props) {
       <div className="md:hidden space-y-3">
         {rows.map((r, idx) => (
           <div key={idx} className="rounded-md border border-gray-200 bg-white p-3 shadow-sm">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-3">
               <input inputMode="numeric" pattern="[0-9]*" className="input w-16 text-center" placeholder="#" value={r.horse_no} onChange={e => updateRow(idx, { horse_no: e.target.value })} />
               <input className="input flex-1" placeholder="馬名" value={r.horse_name} onChange={e => updateRow(idx, { horse_name: e.target.value })} />
               <button className="text-xs text-red-600 ml-auto" onClick={() => deleteRow(idx)}>削除</button>
             </div>
-            <div className="flex items-center gap-3 overflow-x-auto pb-1">
+            {/* Predictors as large tap targets: tap to cycle mark */}
+            <div className="grid grid-cols-2 gap-2">
               {predictors.map(p => (
-                <div key={p} className="flex items-center gap-1">
-                  <span className="text-xs text-gray-600">{p}</span>
-                  <div className="flex gap-1.5">
-                    {ALL_MARKS.map(m => (
-                      <button
-                        key={m}
-                        className={`px-3 py-2 text-sm rounded-md ring-1 ring-inset ${r.marks[p] === m ? 'bg-indigo-600 text-white ring-indigo-600' : 'bg-white text-gray-900 ring-gray-300'}`}
-                        onClick={() => updateRow(idx, { marks: { ...r.marks, [p]: m } })}
-                      >
-                        {m || '—'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <button
+                  key={p}
+                  className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-sm ring-1 ring-inset transition-colors ${r.marks[p] ? 'bg-indigo-600 text-white ring-indigo-600' : 'bg-white text-gray-900 ring-gray-300'}`}
+                  onClick={() => {
+                    const next = cycleMark(r.marks[p] as Mark)
+                    updateRow(idx, { marks: { ...r.marks, [p]: next } })
+                  }}
+                  aria-label={`予想家${p}の印を切り替え`}
+                  title="タップで印を切り替え"
+                >
+                  <span className="font-medium">{p}</span>
+                  <span className="ml-3 text-base leading-none">{r.marks[p] || '—'}</span>
+                </button>
               ))}
             </div>
-            <div className="mt-2">
+            <div className="mt-3">
               <input className="input" placeholder="メモ" value={r.comment ?? ''} onChange={e => updateRow(idx, { comment: e.target.value })} />
             </div>
           </div>
